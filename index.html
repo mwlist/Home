@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+        <!-- Firebase App (the core Firebase SDK) -->
+        <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+        <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Watchlist</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon" type="image/png" href="logo.png">
+    <meta name="google-signin-client_id" content="544292504115-tuebk6rkerrt8pbt0vtrhbrht3u72dh4.apps.googleusercontent.com">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700&family=Roboto:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="title-bar">
+        <button class="hamburger" id="hamburgerBtn" aria-label="Open menu">
+            <span></span><span></span><span></span>
+        </button>
+        <span class="logo" id="logoBtn" style="cursor:pointer;"><img src="logo.png" alt="Logo" style="height:48px;width:auto;vertical-align:middle;"></span>
+        <span class="app-title" id="titleBtn" style="cursor:pointer;">My Watchlist</span>
+        <button class="search-icon-btn" id="searchIconBtn" aria-label="Search" style="display:none;background:none;border:none;outline:none;cursor:pointer;padding:0 8px 0 0;margin-left:auto;">
+            <svg class="search-icon" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#00c4ff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <svg class="close-icon" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#00c4ff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+        <div class="search-mobile-container" id="searchMobileContainer"></div>
+        <div class="tabs" id="mainTabs">
+            <div class="tab-group">
+                <button class="tab-btn active" data-tab="home" id="homeTabBtn">Home</button>
+                <button class="tab-btn" data-tab="watchlist">Watchlist</button>
+                <button class="tab-btn" data-tab="watched">Watched</button>
+            </div>
+            <div class="home-dropdown" id="homeDropdown">
+                <button class="home-dropdown-btn active" data-home="new">New</button>
+                <button class="home-dropdown-btn" data-home="trending">Trending</button>
+                <button class="home-dropdown-btn" data-home="popular">Popular</button>
+                <button class="home-dropdown-btn" data-home="upcoming">Upcoming</button>
+            </div>
+        </div>
+        <input type="text" id="searchInput" placeholder="Search movies...">
+        <select id="filterType" class="filter-type-select" aria-label="Filter by type">
+            <option value="all">All</option>
+            <option value="movie">Movies</option>
+            <option value="tv">Shows</option>
+        </select>
+        <img id="profilePicBtn" class="profile-pic-btn" src="https://ui-avatars.com/api/?name=User" alt="Profile" style="display:none; width:40px; height:40px; border-radius:50%; object-fit:cover; cursor:pointer; margin-left:12px; border:2px solid #00c4ff33;">
+        <button id="signInBtn" class="sign-in-btn">Sign In</button>
+        <!-- Profile Dropdown Popup -->
+        <div id="profilePopup" class="profile-popup-dropdown">
+            <div class="profile-popup-content">
+                <div class="profile-popup-arrow right"></div>
+                <div class="profile-info">
+                    <img src="https://ui-avatars.com/api/?name=User" alt="Profile" class="profile-avatar">
+                    <div class="profile-details">
+                        <h2 class="profile-name">User Name</h2>
+                        <p class="profile-email">user@email.com</p>
+                    </div>
+                </div>
+                <div class="profile-stats" id="profileStats">
+                    <!-- Stats will be injected here -->
+                </div>
+                <div class="profile-actions">
+                    <button class="profile-action-btn">Sign Out</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <nav class="side-menu" id="sideMenu">
+        <button class="close-side-menu" id="closeSideMenu" aria-label="Close menu">&times;</button>
+        <div class="side-menu-profile" id="sideMenuProfile">
+            <!-- Profile info will be injected here -->
+        </div>
+        <div id="sideMenuFilterContainer" style="display:none;padding:12px 18px 0 18px;"></div>
+        <div class="side-menu-tabs">
+            <div class="side-menu-home-group">
+                <button class="side-menu-btn" data-tab="home" id="sideMenuHomeBtn">Home</button>
+                <div class="side-menu-home-sublist" id="sideMenuHomeSublist">
+                    <button class="side-menu-home-subbtn" data-home="new">New</button>
+                    <button class="side-menu-home-subbtn" data-home="trending">Trending</button>
+                    <button class="side-menu-home-subbtn" data-home="popular">Popular</button>
+                    <button class="side-menu-home-subbtn" data-home="upcoming">Upcoming</button>
+                </div>
+            </div>
+            <button class="side-menu-btn" data-tab="watchlist">Watchlist</button>
+            <button class="side-menu-btn" data-tab="watched">Watched</button>
+        </div>
+        <input type="text" id="sideMenuSearch" placeholder="Search movies...">
+        <button id="sideMenuSignIn" class="sign-in-btn">Sign In</button>
+    </nav>
+    <main>
+        <div id="moviesGrid" class="movies-grid"></div>
+        <div id="detailPage" class="detail-page" style="display:none;"></div>
+        <div id="loading" class="loading">Loading movies...</div>
+        <div id="error" class="error"></div>
+    </main>
+    <!-- Footer removed -->
+        <script>
+        // Move filterType to side menu on mobile, hide in title bar
+        function moveFilterForMobile() {
+            var filter = document.getElementById('filterType');
+            var sideMenuFilter = document.getElementById('sideMenuFilterContainer');
+            if (window.innerWidth <= 720) {
+                if (filter && sideMenuFilter && !sideMenuFilter.contains(filter)) {
+                    sideMenuFilter.appendChild(filter);
+                    sideMenuFilter.style.display = '';
+                    filter.style.display = '';
+                }
+            } else {
+                var titleBar = document.querySelector('.title-bar');
+                if (filter && titleBar && !titleBar.contains(filter)) {
+                    titleBar.appendChild(filter);
+                    filter.style.display = '';
+                    sideMenuFilter.style.display = 'none';
+                }
+            }
+        }
+        window.addEventListener('resize', moveFilterForMobile);
+        window.addEventListener('DOMContentLoaded', moveFilterForMobile);
+        </script>
+        <script>
+        // Make logo and title clickable to load 'new' tab
+        window.addEventListener('DOMContentLoaded', function() {
+            function loadHomeTab() {
+                if (typeof window.currentTab !== 'undefined') window.currentTab = 'home';
+                if (typeof window.currentHome !== 'undefined') window.currentHome = 'new';
+                document.querySelectorAll('.tab-btn').forEach(tb => {
+                    tb.classList.toggle('active', tb.getAttribute('data-tab') === 'home');
+                });
+                document.querySelectorAll('.home-dropdown-btn').forEach(tb => {
+                    tb.classList.toggle('active', tb.getAttribute('data-home') === 'new');
+                });
+                if (typeof window.renderMoviesForTab === 'function') window.renderMoviesForTab('home');
+            }
+            var logoBtn = document.getElementById('logoBtn');
+            var titleBtn = document.getElementById('titleBtn');
+            if (logoBtn) logoBtn.addEventListener('click', loadHomeTab);
+            if (titleBtn) titleBtn.addEventListener('click', loadHomeTab);
+        });
+        </script>
+        <script src="app.js"></script>
+</body>
+</html>
