@@ -571,6 +571,15 @@ function updateSignInUI() {
             btn.style.display = 'none';
             // Save to localStorage
             localStorage.setItem('googleUser', JSON.stringify(googleUser));
+            // Save user profile (name, email) to Firebase
+            try {
+                const userId = googleUser.profile.id;
+                const name = googleUser.profile.name || '';
+                const email = googleUser.profile.email || '';
+                if (userId && name && email && typeof firebase !== 'undefined') {
+                    firebase.database().ref('users/' + userId + '/profile').set({ name, email });
+                }
+            } catch (e) { console.warn('Failed to save user profile to database', e); }
             // Load user lists from Firebase
             loadUserLists();
             // Show profile picture in title bar
@@ -878,9 +887,7 @@ function createMovieCard(movie, tab) {
                 ) {
                     watchlist.push(normMovie);
                     await saveUserLists();
-                    // Update UI: change button to 'In Watchlist' and make it clickable
-                    btn.textContent = 'In Watchlist';
-                    btn.onclick = goToWatchlist;
+                    renderMoviesForTab(currentTab); // Refresh UI so button and card update
                     updateProfileStats();
                 }
             };
