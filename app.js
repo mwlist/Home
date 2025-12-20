@@ -15,6 +15,8 @@ window.addEventListener('DOMContentLoaded', () => {
                             allSubBtn.classList.add('active');
                             currentTab = 'home';
                             currentHome = 'all';
+                            const searchInput = document.getElementById('searchInput');
+                            if (searchInput) searchInput.value = '';
                             renderMoviesForTab('home');
                         });
                     }
@@ -887,7 +889,11 @@ function createMovieCard(movie, tab) {
                 ) {
                     watchlist.push(normMovie);
                     await saveUserLists();
-                    renderMoviesForTab(currentTab); // Refresh UI so button and card update
+                    currentTab = 'watchlist';
+                    document.querySelectorAll('.tab-btn').forEach(tb => {
+                        tb.classList.toggle('active', tb.getAttribute('data-tab') === 'watchlist');
+                    });
+                    renderMoviesForTab('watchlist'); // Show the card in watchlist
                     updateProfileStats();
                 }
             };
@@ -1446,7 +1452,7 @@ function renderMoviesForTab(tab) {
             moviesGrid.appendChild(createMovieCard(movie, tab));
         });
     } else if (tab === 'watched') {
-        movies = watched;
+        movies = watched.slice().reverse(); // Show last watched first
         // Filter by type
         if (filterVal === 'movie') {
             movies = movies.filter(m => (m.media_type === 'movie' || m.type === 'movie' || (m.first_air_date === undefined && m.release_date)));
