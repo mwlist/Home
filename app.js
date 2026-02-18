@@ -1,25 +1,39 @@
 // --- Side Menu Responsive Logic ---
 window.addEventListener('DOMContentLoaded', () => {
-                    // Move 'All' tab to Home dropdown as a submenu
-                    const homeDropdown = document.getElementById('homeDropdown');
-                    if (homeDropdown && !document.getElementById('homeAllSubBtn')) {
-                        const allSubBtn = document.createElement('button');
-                        allSubBtn.className = 'home-dropdown-btn';
-                        allSubBtn.id = 'homeAllSubBtn';
-                        allSubBtn.setAttribute('data-home', 'all');
-                        allSubBtn.textContent = 'All';
-                        // Insert as first item in the Home dropdown
-                        homeDropdown.insertBefore(allSubBtn, homeDropdown.firstChild);
-                        allSubBtn.addEventListener('click', function() {
-                            document.querySelectorAll('.home-dropdown-btn').forEach(tb => tb.classList.remove('active'));
-                            allSubBtn.classList.add('active');
-                            currentTab = 'home';
-                            currentHome = 'all';
-                            const searchInput = document.getElementById('searchInput');
-                            if (searchInput) searchInput.value = '';
-                            renderMoviesForTab('home');
-                        });
-                    }
+    // Fetch all movie lists immediately on DOMContentLoaded
+    fetchAllMovieLists();
+    // Move 'All' tab to Home dropdown as a submenu
+    const homeDropdown = document.getElementById('homeDropdown');
+    if (homeDropdown && !document.getElementById('homeAllSubBtn')) {
+        const allSubBtn = document.createElement('button');
+        allSubBtn.className = 'home-dropdown-btn';
+        allSubBtn.id = 'homeAllSubBtn';
+        allSubBtn.setAttribute('data-home', 'all');
+        allSubBtn.textContent = 'All';
+        // Insert as first item in the Home dropdown
+        homeDropdown.insertBefore(allSubBtn, homeDropdown.firstChild);
+        allSubBtn.addEventListener('click', function() {
+            document.querySelectorAll('.home-dropdown-btn').forEach(tb => tb.classList.remove('active'));
+            allSubBtn.classList.add('active');
+            currentTab = 'home';
+            currentHome = 'all';
+            const searchInput = document.getElementById('searchInput');
+            if (searchInput) searchInput.value = '';
+            renderMoviesForTab('home');
+        });
+    }
+
+    // Automatically load the 'New' tab on website open
+    currentTab = 'home';
+    currentHome = 'new';
+    // Set the New tab as active visually
+    document.querySelectorAll('.tab-btn').forEach(tb => {
+        tb.classList.toggle('active', tb.getAttribute('data-tab') === 'home');
+    });
+    document.querySelectorAll('.home-dropdown-btn').forEach(tb => {
+        tb.classList.toggle('active', tb.getAttribute('data-home') === 'new');
+    });
+    renderMoviesForTab('home');
                 // Move search input into mobile container on small screens
                 function moveSearchInputMobile() {
                     var searchInput = document.getElementById('searchInput');
@@ -81,9 +95,10 @@ window.addEventListener('DOMContentLoaded', () => {
             let totalShows = movies.filter(m => m.media_type === 'tv').length;
             let totalMinutes = 0;
             let totalWatchlist = Array.isArray(watchlist) ? watchlist.length : 0;
+
+            let fallbackItems = [];
             movies.forEach(m => {
                 if (m.media_type === 'tv') {
-                    // Gather all episode runtimes from top-level and all seasons
                     let epTimes = [];
                     if (Array.isArray(m.episode_run_time) && m.episode_run_time.length > 0) {
                         epTimes = epTimes.concat(m.episode_run_time.filter(x => typeof x === 'number' && x > 0));
@@ -99,16 +114,15 @@ window.addEventListener('DOMContentLoaded', () => {
                             }
                         });
                     }
-                    // Use average episode runtime if available, else fallback to 45 min per episode
                     let epTime = 0;
                     if (epTimes.length > 0) {
                         epTime = Math.round(epTimes.reduce((a, b) => a + b, 0) / epTimes.length);
                     } else if (typeof m.runtime === 'number' && m.runtime > 0) {
                         epTime = m.runtime;
                     } else {
-                        epTime = 45; // fallback default per episode
+                        epTime = 45;
+                        fallbackItems.push({title: m.title || m.name || 'Unknown TV Show', reason: 'No episode runtime'});
                     }
-                    // Count total episodes from all seasons, or use number_of_episodes
                     let numEps = 0;
                     if (Array.isArray(m.seasons) && m.seasons.length > 0) {
                         numEps = m.seasons.reduce((sum, s) => sum + (s.episode_count || 0), 0);
@@ -120,32 +134,53 @@ window.addEventListener('DOMContentLoaded', () => {
                     } else if (!numEps && typeof m.total_episodes === 'number') {
                         numEps = m.total_episodes;
                     }
-                    // If we have episode count but no runtime, use 45m per episode
                     if (numEps > 0 && (!epTime || epTime <= 0)) {
                         epTime = 45;
+                        fallbackItems.push({title: m.title || m.name || 'Unknown TV Show', reason: 'No episode runtime'});
                     }
-                    // If we have runtime but no episode count, count as 1 episode
                     if (!numEps && epTime > 0) {
                         numEps = 1;
+                        fallbackItems.push({title: m.title || m.name || 'Unknown TV Show', reason: 'No episode count'});
                     }
-                    // If both missing, fallback to 45m * 1
-                    if (!numEps) numEps = 1;
-                    if (!epTime || epTime <= 0) epTime = 45;
+                    if (!numEps) {
+                        numEps = 1;
+                        fallbackItems.push({title: m.title || m.name || 'Unknown TV Show', reason: 'No episode count'});
+                    }
+                    if (!epTime || epTime <= 0) {
+                        epTime = 45;
+                        fallbackItems.push({title: m.title || m.name || 'Unknown TV Show', reason: 'No episode runtime'});
+                    }
                     totalMinutes += epTime * numEps;
                 } else {
-                    if (typeof m.runtime === 'number') totalMinutes += m.runtime;
-                    else if (typeof m.duration === 'number') totalMinutes += m.duration;
-                    else if (typeof m.length === 'number') totalMinutes += m.length;
+                    if (typeof m.runtime === 'number') {
+                        totalMinutes += m.runtime;
+                    } else if (typeof m.duration === 'number') {
+                        totalMinutes += m.duration;
+                    } else if (typeof m.length === 'number') {
+                        totalMinutes += m.length;
+                    } else {
+                        // Use a visible default and mark it clearly
+                        totalMinutes += 100;
+                        fallbackItems.push({title: m.title || m.name || 'Unknown Movie', reason: 'No runtime (default 100m used)'});
+                    }
                 }
             });
             let hours = Math.floor(totalMinutes / 60);
             let mins = totalMinutes % 60;
             let timeStr = totalMinutes > 0 ? `${hours}h ${mins}m` : 'N/A';
+            let tooltip = '';
+            let warningHtml = '';
+            if (fallbackItems.length > 0) {
+                tooltip = 'Some items used fallback values:\n' + fallbackItems.map(f => `${f.title}: ${f.reason}`).join('\n');
+                warningHtml = `<div style='color:#ff4444;font-size:13px;margin-top:4px;'>⚠ Some runtimes are estimated. <span title="${tooltip}">(details)</span></div>`;
+                console.warn('Fallbacks used for runtime:', fallbackItems);
+            }
             return `
                 <div><strong>${totalMovies}</strong> Movies Watched</div>
                 <div><strong>${totalShows}</strong> Shows Watched</div>
-                <div><strong>${timeStr}</strong> Runtime</div>
+                <div><strong title="${tooltip}">${timeStr}</strong> Runtime</div>
                 <div><strong>${totalWatchlist}</strong> listed</div>
+                ${warningHtml}
             `;
         }
 
@@ -397,6 +432,9 @@ window.addEventListener('DOMContentLoaded', () => {
     // Tab navigation
     sideMenuBtns.forEach(btn => {
         btn.addEventListener('click', function(e) {
+            // Clear search box
+            var searchInput = document.getElementById('searchInput');
+            if (searchInput) searchInput.value = '';
             document.querySelectorAll('.side-menu-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
             // Home tab: toggle sublist
@@ -1825,6 +1863,9 @@ searchInput.addEventListener('input', async function() {
 if (tabs) {
     tabs.addEventListener('click', function(e) {
         if (e.target.classList.contains('tab-btn')) {
+            // Clear search box
+            var searchInput = document.getElementById('searchInput');
+            if (searchInput) searchInput.value = '';
             document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
             e.target.classList.add('active');
             // Close details page if open
@@ -1910,6 +1951,9 @@ if (homeTabBtn && homeDropdown) {
     // Also allow click to select Home tab and keep dropdown open
     homeTabBtn.addEventListener('click', function(e) {
         e.stopPropagation();
+        // Clear search box
+        var searchInput = document.getElementById('searchInput');
+        if (searchInput) searchInput.value = '';
         // Always load Home tab and reset dropdown state
         currentTab = 'home';
         homeDropdownOpen = false;
@@ -1928,6 +1972,9 @@ if (homeTabBtn && homeDropdown) {
     });
     homeDropdown.addEventListener('click', function(e) {
         if (e.target.classList.contains('home-dropdown-btn')) {
+            // Clear search box
+            var searchInput = document.getElementById('searchInput');
+            if (searchInput) searchInput.value = '';
             document.querySelectorAll('.home-dropdown-btn').forEach(btn => btn.classList.remove('active'));
             e.target.classList.add('active');
             currentHome = e.target.getAttribute('data-home');
